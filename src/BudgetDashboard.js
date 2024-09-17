@@ -307,7 +307,7 @@ const DetailedBreakdown = ({ revenueData, expenseData }) => {
           {formatCurrency(netProfit)}
         </span>
       </div>
-      <div className="text-2xl font-bold py-2 border-t border-b">
+      <div className="text-xl font-bold py-2 border-t border-b">
         <span className="text-left">Net Profit (Actual Last Year): </span>
         <span className={netProfitActual >= 0 ? 'text-green-600' : 'text-red-600'}>
           {formatCurrency(netProfitActual)}
@@ -421,8 +421,12 @@ const SponsorsTab = () => {
     { name: "Bowery Capital", amount: 5000 },
     { name: "Acrylic", amount: 3000 },
     { name: "Mulgrave Country Club", amount: 2000 },
-    { name: "Alby's Lawnmowing Service (Dirk David)", amount: 1000 },
-    { name: "Other Sponsors", amount: 4000 },
+    { name: "Alby's Lawnmowing Service", amount: 1000 },
+    { name: "Bulk Transport (Tye Marchetti", amount: 1000 },
+    { name: "Weatherware Protection (Dirk David)", amount: 1000 },
+    { name: "Matt Morley", amount: 1000 },
+    { name: "Bendigo Bank", amount: 500 },
+    { name: "Simon Grady", amount: 500 },
   ];
 
   const grantees = [
