@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 const Card = ({ children, className }) => (
@@ -15,6 +15,11 @@ const CardContent = ({ children, className }) => (
 
 const formatCurrency = (amount) => `$${Number(amount).toLocaleString()}`;
 const calculateVariance = (budget, actual) => budget - actual;
+
+const calculatePercentageChange = (budget, actual) => {
+  if (actual === 0) return 0;
+  return ((budget - actual) / actual) * 100;
+};
 
 const detailedRevenueData = [
   { category: "Subscriptions", items: [
@@ -99,13 +104,13 @@ const detailedExpenseData = [
 
 const CategoryCard = ({ title, budget, actual, isRevenue }) => {
   const variance = calculateVariance(budget, actual);
-  const percentageChange = ((budget - actual) / actual) * 100;
+  const percentageChange = calculatePercentageChange(budget, actual);
 
   return (
     <Card>
       <CardHeader>{title}</CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-sm font-medium">Budget 2024/25</p>
             <p className="text-xl font-bold">{formatCurrency(budget)}</p>
@@ -114,14 +119,16 @@ const CategoryCard = ({ title, budget, actual, isRevenue }) => {
             <p className="text-sm font-medium">Actual 2023/24</p>
             <p className="text-xl font-bold">{formatCurrency(actual)}</p>
           </div>
+          <div>
+            <p className={`text-sm font-medium mt-2 ${
+              isRevenue
+                ? variance > 0 ? "text-green-600" : "text-red-600"
+                : variance < 0 ? "text-red-600" : "text-green-600"
+            }`}>
+              {variance > 0 ? "+" : ""}{formatCurrency(variance)} ({percentageChange.toFixed(2)}%)
+            </p>
+          </div>
         </div>
-        <p className={`text-sm font-medium mt-2 ${
-          isRevenue
-            ? variance > 0 ? "text-green-600" : "text-red-600"
-            : variance < 0 ? "text-red-600" : "text-green-600"
-        }`}>
-          {variance > 0 ? "+" : ""}{formatCurrency(variance)} ({percentageChange.toFixed(2)}%)
-        </p>
       </CardContent>
     </Card>
   );
@@ -154,425 +161,31 @@ const CashBalanceSummaryCard = ({ openingBalance, netMovement }) => {
   );
 };
 
-const ProfitLossSummary = ({ revenueData, expenseData }) => {
-  const totalRevenue = revenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalExpenses = expenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const netProfit = totalRevenue - totalExpenses;
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Profit & Loss Summary</h2>
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Revenue</h3>
-          {revenueData.map((category, index) => (
-            <div key={index} className="flex justify-between py-1">
-              <span className="text-left">{category.category}</span>
-              <span className="text-right">{formatCurrency(category.items.reduce((sum, item) => sum + item.budget, 0))}</span>
-            </div>
-          ))}
-          <div className="flex justify-between py-1 font-bold border-t mt-2">
-            <span className="text-left">Total Revenue</span>
-            <span className="text-right">{formatCurrency(totalRevenue)}</span>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Expenses</h3>
-          {expenseData.map((category, index) => (
-            <div key={index} className="flex justify-between py-1">
-              <span className="text-left">{category.category}</span>
-              <span className="text-right">{formatCurrency(category.items.reduce((sum, item) => sum + item.budget, 0))}</span>
-            </div>
-          ))}
-          <div className="flex justify-between py-1 font-bold border-t mt-2">
-            <span className="text-left">Total Expenses</span>
-            <span className="text-right">{formatCurrency(totalExpenses)}</span>
-          </div>
-          <div className="flex justify-between py-1 font-bold">
-          </div>
-        </div>
-        <div className="flex justify-between py-2 text-xl font-bold border-t border-b">
-          <span className="text-left">Net Profit</span>
-          <span className={netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
-            {formatCurrency(netProfit)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DetailedBreakdown = ({ revenueData, expenseData }) => {
-  const totalRevenue = revenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalExpenses = expenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalRevenueActual = revenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const totalExpensesActual = expenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const netProfit = totalRevenue - totalExpenses;
-  const netProfitActual = totalRevenueActual - totalExpensesActual;
-
-  const renderCategory = (category, isRevenue) => {
-    const categoryTotal = category.items.reduce((sum, item) => sum + item.budget, 0);
-    const categoryTotalActual = category.items.reduce((sum, item) => sum + item.actual, 0);
-    return (
-      <div key={category.category} className="mb-6">
-        <h3 className="text-xl font-semibold mb-2 text-left">{category.category}</h3>
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="text-left p-2">Item</th>
-              <th className="text-right p-2">Budget 2024/25</th>
-              <th className="text-right p-2">Actual 2023/24</th>
-              <th className="text-right p-2">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {category.items.map((item, index) => {
-              const variance = calculateVariance(item.budget, item.actual);
-              return (
-                <tr key={index} className="border-b">
-                  <td className="text-left p-2">{item.item}</td>
-                  <td className="text-right p-2">{formatCurrency(item.budget)}</td>
-                  <td className="text-right p-2">{formatCurrency(item.actual)}</td>
-                  <td className={`text-right p-2 ${
-                    isRevenue
-                      ? variance > 0 ? "text-green-600" : "text-red-600"
-                      : variance < 0 ? "text-red-600" : "text-green-600"
-                  }`}>
-                    {formatCurrency(variance)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="font-bold">
-              <td className="text-left p-2">Subtotal</td>
-              <td className="text-right p-2">{formatCurrency(categoryTotal)}</td>
-              <td className="text-right p-2">{formatCurrency(categoryTotalActual)}</td>
-              <td className="text-right p-2">
-                {formatCurrency(calculateVariance(categoryTotal, categoryTotalActual))}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    );
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Detailed Breakdown</h2>
-      
-      <h3 className="text-2xl font-semibold mb-4 text-left">Revenue</h3>
-      {revenueData.map(category => renderCategory(category, true))}
-      
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Revenue: </span>
-        <span className="text-right">{formatCurrency(totalRevenue)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Revenue (Actual): </span>
-        <span className="text-right">{formatCurrency(totalRevenueActual)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Revenue (Variance): </span>
-        <span className="text-right">{formatCurrency(calculateVariance(totalRevenue, totalRevenueActual))}</span>
-      </div>
-
-      <h3 className="text-2xl font-semibold mb-4 text-left">Expenses</h3>
-      {expenseData.map(category => renderCategory(category, false))}
-      
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Expenses: </span>
-        <span className="text-right">{formatCurrency(totalExpenses)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Expenses (Actual 2023/24): </span>
-        <span className="text-right">{formatCurrency(totalExpensesActual)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Expenses (Variance): </span>
-        <span className="text-right">{formatCurrency(calculateVariance(totalExpenses, totalExpensesActual))}</span>
-      </div>
-
-      <div className="text-2xl font-bold py-2 border-t border-b">
-        <span className="text-left">Net Profit: </span>
-        <span className={netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(netProfit)}
-        </span>
-      </div>
-      <div className="text-xl font-bold py-2 border-t border-b">
-        <span className="text-left">Net Profit (Actual Last Year): </span>
-        <span className={netProfitActual >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(netProfitActual)}
-        </span>
-      </div>
-      <div className="text-2xl font-bold py-2 border-t border-b">
-        <span className={calculateVariance(netProfit, netProfitActual) >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(calculateVariance(netProfit, netProfitActual))}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-const GraphsTab = ({ revenueData, expenseData }) => {
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
-
-  const revenueCategories = revenueData.map(category => ({
-    name: category.category,
-    value: category.items.reduce((sum, item) => sum + item.actual, 0)
-  }));
-
-  const expenseCategories = expenseData.map(category => ({
-    name: category.category,
-    value: category.items.reduce((sum, item) => sum + item.actual, 0)
-  }));
-
-  const topRevenueCategories = revenueCategories.slice(0, 3);
-  const topExpenseCategories = expenseCategories.slice(0, 3);
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Graphs</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Revenue Proportions</h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={revenueCategories}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => {
-                  if (name === "Subscriptions" || name === "Sponsors, Grants & Memberships") {
-                    return `${name}: ${(percent * 100).toFixed(0)}%`;
-                  }
-                  return null;
-                }}
-              >
-                {revenueCategories.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Expense Proportions</h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={expenseCategories}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => {
-                  if (name === "Functions, Bar & Food" || name === "Equipment, & Uniforms & Training") {
-                    return `${name}: ${(percent * 100).toFixed(0)}%`;
-                  }
-                  return null;
-                }}
-              >
-                {expenseCategories.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-2">Expenses vs Revenue Comparison</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={revenueData.concat(expenseData)}>
-            <XAxis dataKey="category" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="budget" fill="#8884d8" name="Budget 2024/25" />
-            <Bar dataKey="actual" fill="#82ca9d" name="Actual 2023/24" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-};
-
-const SponsorsTab = () => {
-  const sponsors = [
-    { name: "Bowery Capital", amount: 5000 },
-    { name: "Acrylic", amount: 3000 },
-    { name: "Mulgrave Country Club", amount: 2000 },
-    { name: "Alby's Lawnmowing Service", amount: 1000 },
-    { name: "Bulk Transport (Tye Marchetti", amount: 1000 },
-    { name: "Weatherware Protection (Dirk David)", amount: 1000 },
-    { name: "Matt Morley", amount: 1000 },
-    { name: "Bendigo Bank", amount: 500 },
-    { name: "Simon Grady", amount: 500 },
-  ];
-
-  const grantees = [
-    { name: "Council", amount: 2500 },
-    { name: "MOCA", amount: 4000 },
-    { name: "Other", amount: 0 },
-  ];
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Sponsors</h2>
-      <table className="w-full mb-8">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="text-left p-2">Sponsor Entity</th>
-            <th className="text-right p-2">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sponsors.map((sponsor, index) => (
-            <tr key={index} className="border-b">
-              <td className="text-left p-2">{sponsor.name}</td>
-              <td className="text-right p-2">{formatCurrency(sponsor.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td className="text-left p-2">Total</td>
-            <td className="text-right p-2">{formatCurrency(sponsors.reduce((sum, sponsor) => sum + sponsor.amount, 0))}</td>
-          </tr>
-        </tfoot>
-      </table>
-      <h2 className="text-2xl font-bold mb-4">Grantees</h2>
-      <table className="w-full">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="text-left p-2">Grantee</th>
-            <th className="text-right p-2">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {grantees.map((grantee, index) => (
-            <tr key={index} className="border-b">
-              <td className="text-left p-2">{grantee.name}</td>
-              <td className="text-right p-2">{formatCurrency(grantee.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td className="text-left p-2">Total</td>
-            <td className="text-right p-2">{formatCurrency(grantees.reduce((sum, grantee) => sum + grantee.amount, 0))}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-};
-
-const SubscriptionsTab = () => {
-  const [subscriptions, setSubscriptions] = useState([
-    { feeType: "Senior", price: 440, payees: 20 },
-    { feeType: "Senior Concession", price: 340, payees: 15 },
-    { feeType: "Junior (Playing Seniors)", price: 120, payees: 6 },
-    { feeType: "Junior", price: 240, payees: 70 },
-    { feeType: "Blast/Super 7s", price: 50, payees: 7 },
-    { feeType: "Vets", price: 280, payees: 11 },
-    { feeType: "Women's", price: 100, payees: 0 },
-    { feeType: "All Abilities", price: 100, payees: 6 },
-  ]);
-
-  const handlePriceChange = (index, newPrice) => {
-    const updatedSubscriptions = [...subscriptions];
-    updatedSubscriptions[index].price = newPrice;
-    setSubscriptions(updatedSubscriptions);
-  };
-
-  const handlePayeesChange = (index, newPayees) => {
-    const updatedSubscriptions = [...subscriptions];
-    updatedSubscriptions[index].payees = newPayees;
-    setSubscriptions(updatedSubscriptions);
-  };
-
-  const totalRevenue = subscriptions.reduce((sum, sub) => sum + sub.price * sub.payees, 0);
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Subscriptions</h2>
-      <table className="w-full mb-8">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="text-left p-2">Fee Type</th>
-            <th className="text-right p-2">Price</th>
-            <th className="text-right p-2"># of Payees</th>
-            <th className="text-right p-2">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subscriptions.map((sub, index) => (
-            <tr key={index} className="border-b">
-            <td className="text-left p-2">{sub.feeType}</td>
-            <td className="text-right p-2">
-              <input
-                type="number"
-                value={sub.price}
-                onChange={(e) => handlePriceChange(index, parseFloat(e.target.value))}
-                className="w-full text-right"
-              />
-            </td>
-            <td className="text-right p-2">
-              <input
-                type="number"
-                value={sub.payees}
-                onChange={(e) => handlePayeesChange(index, parseInt(e.target.value))}
-                className="w-full text-right"
-              />
-            </td>
-            <td className="text-right p-2">{formatCurrency(sub.price * sub.payees)}</td>
-          </tr>
-        ))}
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td className="text-left p-2">Grand Total:</td>
-            <td></td>
-            <td className="text-right p-2">{subscriptions.reduce((sum, sub) => sum + sub.payees, 0)}</td>
-            <td className="text-right p-2">{formatCurrency(totalRevenue)}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-};
+const TabButton = ({ label, isActive, onClick }) => (
+  <button
+    className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
+      isActive
+        ? 'bg-white shadow text-blue-700'
+        : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+    }`}
+    onClick={onClick}
+    aria-pressed={isActive}
+  >
+    {label}
+  </button>
+);
 
 const BudgetDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
-  const totalRevenueBudget = detailedRevenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalExpenseBudget = detailedExpenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalRevenueActual = detailedRevenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const totalExpenseActual = detailedExpenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
+  const totalRevenueBudget = useMemo(() => detailedRevenueData.reduce((sum, category) =>
+    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0), []);
+  const totalExpenseBudget = useMemo(() => detailedExpenseData.reduce((sum, category) =>
+    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0), []);
+  const totalRevenueActual = useMemo(() => detailedRevenueData.reduce((sum, category) =>
+    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0), []);
+  const totalExpenseActual = useMemo(() => detailedExpenseData.reduce((sum, category) =>
+    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0), []);
   const profitLossBudget = totalRevenueBudget - totalExpenseBudget;
   const profitLossActual = totalRevenueActual - totalExpenseActual;
 
@@ -586,66 +199,36 @@ const BudgetDashboard = () => {
       </h1>
       <div className="mb-6">
         <div className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'overview'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
+          <TabButton
+            label="Overview"
+            isActive={activeTab === 'overview'}
             onClick={() => setActiveTab('overview')}
-          >
-            Overview
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'pl-summary'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
+          />
+          <TabButton
+            label="P&L Summary"
+            isActive={activeTab === 'pl-summary'}
             onClick={() => setActiveTab('pl-summary')}
-          >
-            P&L Summary
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'detailed-breakdown'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
+          />
+          <TabButton
+            label="Detailed Breakdown"
+            isActive={activeTab === 'detailed-breakdown'}
             onClick={() => setActiveTab('detailed-breakdown')}
-          >
-            Detailed Breakdown
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'graphs'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
+          />
+          <TabButton
+            label="Graphs"
+            isActive={activeTab === 'graphs'}
             onClick={() => setActiveTab('graphs')}
-          >
-            Graphs
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'sponsors'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
+          />
+          <TabButton
+            label="Sponsors"
+            isActive={activeTab === 'sponsors'}
             onClick={() => setActiveTab('sponsors')}
-          >
-            Sponsors
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'subscriptions'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
+          />
+          <TabButton
+            label="Subscriptions"
+            isActive={activeTab === 'subscriptions'}
             onClick={() => setActiveTab('subscriptions')}
-          >
-            Subscriptions
-          </button>
+          />
         </div>
       </div>
       {activeTab === 'overview' && (
@@ -657,19 +240,154 @@ const BudgetDashboard = () => {
         </div>
       )}
       {activeTab === 'pl-summary' && (
-        <ProfitLossSummary revenueData={detailedRevenueData} expenseData={detailedExpenseData} />
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Profit & Loss Summary</h2>
+          <CategoryCard title="Total Revenue" budget={totalRevenueBudget} actual={totalRevenueActual} isRevenue={true} />
+          <CategoryCard title="Total Expenses" budget={totalExpenseBudget} actual={totalExpenseActual} isRevenue={false} />
+          <CategoryCard title="Net Profit/Loss" budget={profitLossBudget} actual={profitLossActual} isRevenue={true} />
+        </div>
       )}
       {activeTab === 'detailed-breakdown' && (
-        <DetailedBreakdown revenueData={detailedRevenueData} expenseData={detailedExpenseData} />
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Detailed Breakdown</h2>
+          {detailedRevenueData.map((category, index) => (
+            <div key={index} className="mb-6">
+              <h3 className="text-xl font-semibold mb-2 text-left">{category.category}</h3>
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="text-left p-2">Item</th>
+                    <th className="text-right p-2">Budget 2024/25</th>
+                    <th className="text-right p-2">Actual 2023/24</th>
+                    <th className="text-right p-2">Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {category.items.map((item, index) => {
+                    const variance = calculateVariance(item.budget, item.actual);
+                    return (
+                      <tr key={index} className="border-b">
+                        <td className="text-left p-2">{item.item}</td>
+                        <td className="text-right p-2">{formatCurrency(item.budget)}</td>
+                        <td className="text-right p-2">{formatCurrency(item.actual)}</td>
+                        <td className={`text-right p-2 ${
+                          variance > 0 ? "text-green-600" : "text-red-600"
+                        }`}>
+                          {formatCurrency(variance)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
       )}
       {activeTab === 'graphs' && (
-        <GraphsTab revenueData={detailedRevenueData} expenseData={detailedExpenseData} />
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Graphs</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Revenue Proportions</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={detailedRevenueData.map(category => ({
+                      name: category.category,
+                      value: category.items.reduce((sum, item) => sum + item.actual, 0)
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={150}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {detailedRevenueData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index % 4]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Expense Proportions</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
+                  <Pie
+                    data={detailedExpenseData.map(category => ({
+                      name: category.category,
+                      value: category.items.reduce((sum, item) => sum + item.actual, 0)
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={150}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {detailedExpenseData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index % 4]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       )}
       {activeTab === 'sponsors' && (
-        <SponsorsTab />
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Sponsors</h2>
+          <table className="w-full mb-8">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="text-left p-2">Sponsor Entity</th>
+                <th className="text-right p-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[{ name: "Bowery Capital", amount: 5000 }, { name: "Acrylic", amount: 3000 }, { name: "Mulgrave Country Club", amount: 2000 }, { name: "Alby's Lawnmowing Service", amount: 1000 }, { name: "Bulk Transport (Tye Marchetti", amount: 1000 }, { name: "Weatherware Protection (Dirk David)", amount: 1000 }, { name: "Matt Morley", amount: 1000 }, { name: "Bendigo Bank", amount: 500 }, { name: "Simon Grady", amount: 500 }].map((sponsor, index) => (
+                <tr key={index} className="border-b">
+                  <td className="text-left p-2">{sponsor.name}</td>
+                  <td className="text-right p-2">{formatCurrency(sponsor.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {activeTab === 'subscriptions' && (
-        <SubscriptionsTab />
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Subscriptions</h2>
+          <table className="w-full mb-8">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="text-left p-2">Fee Type</th>
+                <th className="text-right p-2">Price</th>
+                <th className="text-right p-2"># of Payees</th>
+                <th className="text-right p-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[{ feeType: "Senior", price: 440, payees: 20 }, { feeType: "Senior Concession", price: 340, payees: 15 }, { feeType: "Junior (Playing Seniors)", price: 120, payees: 6 }, { feeType: "Junior", price: 240, payees: 70 }, { feeType: "Blast/Super 7s", price: 50, payees: 7 }, { feeType: "Vets", price: 280, payees: 11 }, { feeType: "Women's", price: 100, payees: 0 }, { feeType: "All Abilities", price: 100, payees: 6 }].map((sub, index) => (
+                <tr key={index} className="border-b">
+                  <td className="text-left p-2">{sub.feeType}</td>
+                  <td className="text-right p-2">{formatCurrency(sub.price)}</td>
+                  <td className="text-right p-2">{sub.payees}</td>
+                  <td className="text-right p-2">{formatCurrency(sub.price * sub.payees)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
