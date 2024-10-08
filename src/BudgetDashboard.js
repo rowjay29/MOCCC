@@ -1,678 +1,301 @@
 import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const Card = ({ children, className }) => (
-  <div className={`bg-white rounded-lg shadow-md ${className}`}>{children}</div>
-);
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+};
 
-const CardHeader = ({ children, className }) => (
-  <div className={`p-4 font-semibold text-lg ${className}`}>{children}</div>
-);
+const FinancialDashboard = () => {
+  const [activePage, setActivePage] = useState('insights');
 
-const CardContent = ({ children, className }) => (
-  <div className={`p-4 ${className}`}>{children}</div>
-);
+  const financialData = {
+    monthToDate: {
+      netSales: 9507764,
+      grossProfit: 4172835,
+      grossProfitMargin: 44.0,
+      netProfit: 2175975,
+      netProfitMargin: 23.0,
+    },
+    yearToDate: {
+      netSales: 19915649,
+      grossProfit: 8381126,
+      grossProfitMargin: 42.3,
+      netProfit: 2650716,
+      netProfitMargin: 13.4,
+    },
+  };
 
-const formatCurrency = (amount) => `$${Number(amount).toLocaleString()}`;
-const calculateVariance = (budget, actual) => budget - actual;
+  const warehouseLaborCost = [
+    { name: 'Total', actual: 0.3013, budget: 0.3153, variance: 0.0141 },
+    { name: 'Kmart Books', actual: 0.3104, budget: 0.2828, variance: -0.0276 },
+    { name: 'Target Books', actual: 0.3330, budget: 0.2879, variance: -0.0452 },
+    { name: 'Big W', actual: 0.2785, budget: 0.2725, variance: -0.0059 },
+    { name: 'Coles', actual: 0.0984, budget: 0.1450, variance: 0.0466 },
+    { name: 'Other Domestic', actual: 0.2219, budget: 0.1822, variance: -0.0397 },
+  ];
 
-const detailedRevenueData = [
-  { category: "Subscriptions", items: [
-    { item: "Senior Mens Subscription Fees", budget: 14620, actual: 13599 },
-    { item: "Junior Subscription Fees", budget: 17150, actual: 17061 },
-    { item: "Veterans Subscription Fees", budget: 3080, actual: 2500 },
-    { item: "Women's Subscription Fees", budget: 0, actual: 708 },
-    { item: "All Abilities Subscription Fees", budget: 600, actual: 500 },
-  ]},
-  { category: "Functions, Bar & Food", items: [
-    { item: "Social Functions", budget: 20000, actual: 13389 },
-    { item: "Bar - Food/Drinks", budget: 13000, actual: 13050 },
-    { item: "50 Year Anniversary", budget: 0, actual: 17175 },
-  ]},
-  { category: "Sponsors, Grants & Memberships", items: [
-    { item: "Sponsorship", budget: 15000, actual: 8500 },
-    { item: "Grants / Donations", budget: 6500, actual: 7500 },
-    { item: "Centurions Memberships", budget: 500, actual: 500 },
-  ]},
-  { category: "Other", items: [
-    { item: "Afternoon Tea", budget: 2000, actual: 1899 },
-    { item: "Interest", budget: 600, actual: 477 },
-    { item: "Bank / Paypal Fees", budget: 0, actual: 0 },
-    { item: "Uniforms", budget: 0, actual: 194 },
-    { item: "Miscellaneous", budget: 0, actual: 141 },
-  ]},
-];
+  const territoryContribution = [
+    { name: 'ANZ (MAIN)', sales: 2025113, gp: 816482, contribution: 363605 },
+    { name: 'ANZ (FOB)', sales: 682657, gp: 300614, contribution: 265079 },
+    { name: 'International', sales: 5753575, gp: 2525317, contribution: 2537349 },
+  ];
 
-const detailedExpenseData = [
-  { category: "Functions, Bar & Food", items: [
-    { item: "Social Functions", budget: 11975, actual: 5945 },
-    { item: "Bar - Food/Drinks", budget: 8000, actual: 6188 },
-    { item: "Bar - Operational", budget: 1000, actual: 0 },
-    { item: "Liquor Licence", budget: 325, actual: 325 },
-    { item: "50 Year Anniversary Dinner", budget: 0, actual: 16740 },
-  ]},
-  { category: "Equipment, & Uniforms & Training", items: [
-    { item: "Cricket Balls", budget: 8000, actual: 8340 },
-    { item: "Uniforms", budget: 5000, actual: 0 },
-    { item: "Match Day Uniforms", budget: 2000, actual: 8431 },
-    { item: "Junior Uniforms", budget: 5500, actual: 0 },
-    { item: "Cricket Equipment (Club Wide - Excl. Balls)", budget: 500, actual: 308 },
-    { item: "Operational Equipment Expenses", budget: 500, actual: 0 },
-    { item: "Training Expenses", budget: 3000, actual: 1440 },
-    { item: "Scoreboard Installation", budget: 0, actual: 3336 },
-    { item: "Bowling Machine", budget: 0, actual: 1630 },
-  ]},
-  { category: "Coach, Captain & Player Payments", items: [
-    { item: "Senior Coach", budget: 9000, actual: 4000 },
-    { item: "Player Payments", budget: 6500, actual: 10654 },
-    { item: "Captain", budget: 2000, actual: 1500 },
-  ]},
-  { category: "Game day & Affiliation Fees", items: [
-    { item: "Umpires - (Regular Season)", budget: 6500, actual: 6288 },
-    { item: "Umpires - (Finals)", budget: 1000, actual: 610 },
-    { item: "Affiliation Fees - Juniors", budget: 2200, actual: 1859 },
-    { item: "Affiliation Fees - Senior Mens", budget: 1100, actual: 1175 },
-    { item: "Affiliation Fees - Veterans", budget: 550, actual: 242 },
-    { item: "Affiliation Fees - Senior Womens", budget: 550, actual: 120 },
-    { item: "T20 Competition Entry", budget: 550, actual: 338 },
-    { item: "Afternoon Tea", budget: 3600, actual: 2384 },
-    { item: "Foxbox", budget: 0, actual: 0 },
-    { item: "External Ground Hire", budget: 2000, actual: 5177 },
-  ]},
-  { category: "Reward and Recognition", items: [
-    { item: "Trophies", budget: 5000, actual: 60 },
-  ]},
-  { category: "College and Sponsors", items: [
-    { item: "Mazenod College Payment", budget: 2600, actual: 2600 },
-    { item: "Sponsorship", budget: 0, actual: 0 },
-  ]},
-  { category: "Other", items: [
-    { item: "Renovation to Clubrooms", budget: 2000, actual: 0 },
-    { item: "Miscellaneous", budget: 1000, actual: 1019 },
-    { item: "IT Charges", budget: 500, actual: 798 },
-    { item: "Social Media", budget: 200, actual: 0 },
-    { item: "Donations", budget: 0, actual: 500 },
-    { item: "Fines", budget: 300, actual: 88 },
-    { item: "Insurances", budget: 0, actual: 0 },
-  ]},
-];
+  const forwardOrderBook = [
+    { name: 'Total', thisYear: 6504451, lastYear: 4499383, variance: 2005068 },
+    { name: 'Target', thisYear: 1473722, lastYear: 2176156, variance: -702434 },
+    { name: 'B&N', thisYear: 970013, lastYear: 256004, variance: 714009 },
+    { name: 'Five Below', thisYear: 697971, lastYear: 811921, variance: -113950 },
+    { name: 'Greenbrier', thisYear: 619982, lastYear: 51383, variance: 568600 },
+  ];
 
-const CategoryCard = ({ title, budget, actual, isRevenue }) => {
-  const variance = calculateVariance(budget, actual);
-  const percentageChange = ((budget - actual) / actual) * 100;
+  const turnoverByTerritory = [
+    { name: 'TOTAL', actual: 9507764, budget: 8688860, variance: 818903, varPercent: 9.4 },
+    { name: 'ANZ', actual: 2707769, budget: 3502166, variance: -794397, varPercent: -22.7 },
+    { name: 'Nth America', actual: 5545778, budget: 4049735, variance: 1496043, varPercent: 36.9 },
+    { name: 'Asia', actual: 180153, budget: 106040, variance: 74113, varPercent: 69.9 },
+    { name: 'Africa', actual: 27644, budget: 87476, variance: -59832, varPercent: -68.4 },
+    { name: 'Other Territories', actual: 1046419, budget: 943444, variance: 102975, varPercent: 10.9 },
+  ];
 
-  return (
-    <Card>
-      <CardHeader>{title}</CardHeader>
+  const turnoverByDelivery = [
+    { name: 'TOTAL', actual: 9507764, ly: 8691373, variance: 816390, varPercent: 9.4 },
+    { name: 'AU Domestic', actual: 2082017, ly: 3528042, variance: -1446025, varPercent: -41.0 },
+    { name: 'FOB', actual: 6469786, ly: 5054150, variance: 1415637, varPercent: 28.0 },
+    { name: 'Other Delivery', actual: 955960, ly: 109182, variance: 846778, varPercent: 775.6 },
+  ];
+
+  const turnoverByChannel = [
+    { name: 'TOTAL', actual: 9507764, ly: 8691373, variance: 816390, varPercent: 9.4 },
+    { name: 'DDS', actual: 1545811, ly: 3129107, variance: -1583296, varPercent: -50.6 },
+    { name: 'Supermarkets', actual: 755643, ly: 1183263, variance: -427619, varPercent: -36.1 },
+    { name: 'Discounters', actual: 4751362, ly: 3023486, variance: 1727877, varPercent: 57.1 },
+    { name: 'Wholesalers', actual: 229925, ly: 306804, variance: -76880, varPercent: -25.1 },
+    { name: 'Bookstores', actual: 363877, ly: 697528, variance: -333651, varPercent: -47.8 },
+    { name: 'Department Store', actual: 856117, ly: 0, variance: 856117, varPercent: 0 },
+    { name: 'Specialty', actual: 411857, ly: 204419, variance: 207439, varPercent: 101.5 },
+    { name: 'E-Commerce', actual: 19564, ly: 7253, variance: 12310, varPercent: 169.7 },
+    { name: 'Direct Marketers', actual: 70700, ly: 16437, variance: 54264, varPercent: 330.1 },
+    { name: 'Other Channel', actual: 502907, ly: 123077, variance: 379830, varPercent: 308.6 },
+  ];
+
+  const turnoverByWorld = [
+    { name: 'TOTAL', actual: 9507764, ly: 8691373, variance: 816390, varPercent: 9.4 },
+    { name: 'Explore', actual: 2620261, ly: 3251035, variance: -630775, varPercent: -19.4 },
+    { name: 'Imagine', actual: 3240647, ly: 1807551, variance: 1433096, varPercent: 79.3 },
+    { name: 'Create', actual: 2096657, ly: 2754259, variance: -657603, varPercent: -23.9 },
+    { name: 'Play', actual: 1479375, ly: 808345, variance: 671031, varPercent: 83.0 },
+    { name: 'Other World', actual: 70824, ly: 70184, variance: 641, varPercent: 0.9 },
+  ];
+
+  const InsightsPage = () => (
+    <Card className="p-6">
+      <CardHeader className="text-2xl font-bold">Key Insights</CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm font-medium">Budget 2024/25</p>
-            <p className="text-xl font-bold">{formatCurrency(budget)}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium">Actual 2023/24</p>
-            <p className="text-xl font-bold">{formatCurrency(actual)}</p>
-          </div>
-        </div>
-        <p className={`text-sm font-medium mt-2 ${
-          isRevenue
-            ? variance > 0 ? "text-green-600" : "text-red-600"
-            : variance < 0 ? "text-red-600" : "text-green-600"
-        }`}>
-          {variance > 0 ? "+" : ""}{formatCurrency(variance)} ({percentageChange.toFixed(2)}%)
-        </p>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>Overall turnover has increased by 9.4% month-to-date and 4.1% year-to-date compared to last year.</li>
+          <li>North America shows strong growth with a 36.9% increase in turnover month-to-date.</li>
+          <li>FOB deliveries have increased by 28.0%, while AU Domestic deliveries have decreased by 41.0%.</li>
+          <li>Discounters channel has seen significant growth of 57.1% month-to-date.</li>
+          <li>The 'Imagine' world category has shown remarkable growth of 79.3% month-to-date.</li>
+          <li>E-Commerce and Direct Marketers channels show high growth percentages, albeit from a smaller base.</li>
+        </ul>
       </CardContent>
     </Card>
   );
-};
 
-const CashBalanceSummaryCard = ({ openingBalance, netMovement }) => {
-  const closingBalance = openingBalance + netMovement;
-
-  return (
-    <Card>
-      <CardHeader>Cash Balance Summary</CardHeader>
+  const FinancialOverviewPage = () => (
+    <Card className="p-6">
+      <CardHeader className="text-2xl font-bold">Financial Overview</CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium">Opening Cash Balance as at 01/04/2024</p>
-            <p className="text-xl font-bold">{formatCurrency(openingBalance)}</p>
-          </div>
-          <div>
-            <p className={`text-xl font-bold ${netMovement >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(netMovement)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-medium">Closing Cash Balance as at 31/03/2025</p>
-            <p className="text-xl font-bold">{formatCurrency(closingBalance)}</p>
+          <div className="text-xl">
+            <p>Net Sales (MTD): <span className="font-bold text-2xl">{formatCurrency(financialData.monthToDate.netSales)}</span></p>
+            <p>Gross Profit (MTD): <span className="font-bold text-2xl">{formatCurrency(financialData.monthToDate.grossProfit)}</span></p>
+            <p>Gross Profit Margin (MTD): <span className="font-bold text-2xl">{financialData.monthToDate.grossProfitMargin}%</span></p>
+            <p>Net Profit (MTD): <span className="font-bold text-2xl">{formatCurrency(financialData.monthToDate.netProfit)}</span></p>
+            <p>Net Profit Margin (MTD): <span className="font-bold text-2xl">{financialData.monthToDate.netProfitMargin}%</span></p>
           </div>
         </div>
       </CardContent>
     </Card>
   );
-};
 
-const ProfitLossSummary = ({ revenueData, expenseData }) => {
-  const totalRevenue = revenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalExpenses = expenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const netProfit = totalRevenue - totalExpenses;
+  const WarehouseLaborCostPage = () => (
+    <Card className="p-6">
+      <CardHeader className="text-2xl font-bold">Warehouse Labor Cost per Unit</CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Department</TableHead>
+              <TableHead>Actual</TableHead>
+              <TableHead>Budget</TableHead>
+              <TableHead>Variance</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {warehouseLaborCost.map((item) => (
+              <TableRow key={item.name}>
+                <TableCell>{item.name}</TableCell>
+                <TableCell>{formatCurrency(item.actual)}</TableCell>
+                <TableCell>{formatCurrency(item.budget)}</TableCell>
+                <TableCell>{formatCurrency(item.variance)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+
+  const TerritoryContributionPage = () => (
+    <Card className="p-6">
+      <CardHeader className="text-2xl font-bold">Contribution by Territory</CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Territory</TableHead>
+              <TableHead>Sales</TableHead>
+              <TableHead>Gross Profit</TableHead>
+              <TableHead>Contribution</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {territoryContribution.map((item) => (
+              <TableRow key={item.name}>
+                <TableCell>{item.name}</TableCell>
+                <TableCell>{formatCurrency(item.sales)}</TableCell>
+                <TableCell>{formatCurrency(item.gp)}</TableCell>
+                <TableCell>{formatCurrency(item.contribution)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+
+  const ForwardOrderBookPage = () => (
+    <Card className="p-6">
+      <CardHeader className="text-2xl font-bold">US Forward Order Book</CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Client</TableHead>
+              <TableHead>This Year</TableHead>
+              <TableHead>Last Year</TableHead>
+              <TableHead>Variance</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {forwardOrderBook.map((item) => (
+              <TableRow key={item.name}>
+                <TableCell>{item.name}</TableCell>
+                <TableCell>{formatCurrency(item.thisYear)}</TableCell>
+                <TableCell>{formatCurrency(item.lastYear)}</TableCell>
+                <TableCell>{formatCurrency(item.variance)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+
+  const TurnoverPage = () => (
+    <Card className="p-6">
+      <CardHeader className="text-2xl font-bold">Turnover Analysis</CardHeader>
+      <CardContent>
+        <Tabs defaultValue="territory">
+          <TabsList>
+            <TabsTrigger value="territory">By Territory</TabsTrigger>
+            <TabsTrigger value="delivery">By Delivery</TabsTrigger>
+            <TabsTrigger value="channel">By Channel</TabsTrigger>
+            <TabsTrigger value="world">By World</TabsTrigger>
+          </TabsList>
+          <TabsContent value="territory">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={turnoverByTerritory}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Line type="monotone" dataKey="actual" name="Actual" stroke="#8884d8" />
+                <Line type="monotone" dataKey="budget" name="Budget" stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </TabsContent>
+          <TabsContent value="delivery">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={turnoverByDelivery}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Line type="monotone" dataKey="actual" name="Actual" stroke="#8884d8" />
+                <Line type="monotone" dataKey="ly" name="Last Year" stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </TabsContent>
+          <TabsContent value="channel">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={turnoverByChannel}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Line type="monotone" dataKey="actual" name="Actual" stroke="#8884d8" />
+                <Line type="monotone" dataKey="ly" name="Last Year" stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </TabsContent>
+          <TabsContent value="world">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={turnoverByWorld}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Line type="monotone" dataKey="actual" name="Actual" stroke="#8884d8" />
+                <Line type="monotone" dataKey="ly" name="Last Year" stroke="#82ca9d" />
+              </LineChart>
+            </ResponsiveContainer>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Profit & Loss Summary</h2>
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Revenue</h3>
-          {revenueData.map((category, index) => (
-            <div key={index} className="flex justify-between py-1">
-              <span className="text-left">{category.category}</span>
-              <span className="text-right">{formatCurrency(category.items.reduce((sum, item) => sum + item.budget, 0))}</span>
-            </div>
-          ))}
-          <div className="flex justify-between py-1 font-bold border-t mt-2">
-            <span className="text-left">Total Revenue</span>
-            <span className="text-right">{formatCurrency(totalRevenue)}</span>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Expenses</h3>
-          {expenseData.map((category, index) => (
-            <div key={index} className="flex justify-between py-1">
-              <span className="text-left">{category.category}</span>
-              <span className="text-right">{formatCurrency(category.items.reduce((sum, item) => sum + item.budget, 0))}</span>
-            </div>
-          ))}
-          <div className="flex justify-between py-1 font-bold border-t mt-2">
-            <span className="text-left">Total Expenses</span>
-            <span className="text-right">{formatCurrency(totalExpenses)}</span>
-          </div>
-          <div className="flex justify-between py-1 font-bold">
-          </div>
-        </div>
-        <div className="flex justify-between py-2 text-xl font-bold border-t border-b">
-          <span className="text-left">Net Profit</span>
-          <span className={netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
-            {formatCurrency(netProfit)}
-          </span>
-        </div>
-      </div>
+    <div className="p-4 space-y-4">
+      <h1 className="text-3xl font-bold">Hinkler Australia Financial Dashboard</h1>
+      <Tabs value={activePage} onValueChange={setActivePage}>
+        <TabsList>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="overview">Financial Overview</TabsTrigger>
+          <TabsTrigger value="warehouse">Warehouse Labor Cost</TabsTrigger>
+          <TabsTrigger value="territory">Territory Contribution</TabsTrigger>
+          <TabsTrigger value="orderbook">Forward Order Book</TabsTrigger>
+          <TabsTrigger value="turnover">Turnover Analysis</TabsTrigger>
+        </TabsList>
+        <TabsContent value="insights"><InsightsPage /></TabsContent>
+        <TabsContent value="overview"><FinancialOverviewPage /></TabsContent>
+        <TabsContent value="warehouse"><WarehouseLaborCostPage /></TabsContent>
+        <TabsContent value="territory"><TerritoryContributionPage /></TabsContent>
+        <TabsContent value="orderbook"><ForwardOrderBookPage /></TabsContent>
+        <TabsContent value="turnover"><TurnoverPage /></TabsContent>
+      </Tabs>
     </div>
   );
 };
 
-const DetailedBreakdown = ({ revenueData, expenseData }) => {
-  const totalRevenue = revenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalExpenses = expenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalRevenueActual = revenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const totalExpensesActual = expenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const netProfit = totalRevenue - totalExpenses;
-  const netProfitActual = totalRevenueActual - totalExpensesActual;
-
-  const renderCategory = (category, isRevenue) => {
-    const categoryTotal = category.items.reduce((sum, item) => sum + item.budget, 0);
-    const categoryTotalActual = category.items.reduce((sum, item) => sum + item.actual, 0);
-    return (
-      <div key={category.category} className="mb-6">
-        <h3 className="text-xl font-semibold mb-2 text-left">{category.category}</h3>
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="text-left p-2">Item</th>
-              <th className="text-right p-2">Budget 2024/25</th>
-              <th className="text-right p-2">Actual 2023/24</th>
-              <th className="text-right p-2">Variance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {category.items.map((item, index) => {
-              const variance = calculateVariance(item.budget, item.actual);
-              return (
-                <tr key={index} className="border-b">
-                  <td className="text-left p-2">{item.item}</td>
-                  <td className="text-right p-2">{formatCurrency(item.budget)}</td>
-                  <td className="text-right p-2">{formatCurrency(item.actual)}</td>
-                  <td className={`text-right p-2 ${
-                    isRevenue
-                      ? variance > 0 ? "text-green-600" : "text-red-600"
-                      : variance < 0 ? "text-red-600" : "text-green-600"
-                  }`}>
-                    {formatCurrency(variance)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="font-bold">
-              <td className="text-left p-2">Subtotal</td>
-              <td className="text-right p-2">{formatCurrency(categoryTotal)}</td>
-              <td className="text-right p-2">{formatCurrency(categoryTotalActual)}</td>
-              <td className="text-right p-2">
-                {formatCurrency(calculateVariance(categoryTotal, categoryTotalActual))}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    );
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Detailed Breakdown</h2>
-      
-      <h3 className="text-2xl font-semibold mb-4 text-left">Revenue</h3>
-      {revenueData.map(category => renderCategory(category, true))}
-      
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Revenue: </span>
-        <span className="text-right">{formatCurrency(totalRevenue)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Revenue (Actual): </span>
-        <span className="text-right">{formatCurrency(totalRevenueActual)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Revenue (Variance): </span>
-        <span className="text-right">{formatCurrency(calculateVariance(totalRevenue, totalRevenueActual))}</span>
-      </div>
-
-      <h3 className="text-2xl font-semibold mb-4 text-left">Expenses</h3>
-      {expenseData.map(category => renderCategory(category, false))}
-      
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Expenses: </span>
-        <span className="text-right">{formatCurrency(totalExpenses)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Expenses (Actual 2023/24): </span>
-        <span className="text-right">{formatCurrency(totalExpensesActual)}</span>
-      </div>
-      <div className="font-bold text-xl mb-6">
-        <span className="text-left">Total Expenses (Variance): </span>
-        <span className="text-right">{formatCurrency(calculateVariance(totalExpenses, totalExpensesActual))}</span>
-      </div>
-
-      <div className="text-2xl font-bold py-2 border-t border-b">
-        <span className="text-left">Net Profit: </span>
-        <span className={netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(netProfit)}
-        </span>
-      </div>
-      <div className="text-xl font-bold py-2 border-t border-b">
-        <span className="text-left">Net Profit (Actual Last Year): </span>
-        <span className={netProfitActual >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(netProfitActual)}
-        </span>
-      </div>
-      <div className="text-2xl font-bold py-2 border-t border-b">
-        <span className={calculateVariance(netProfit, netProfitActual) >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(calculateVariance(netProfit, netProfitActual))}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-const GraphsTab = ({ revenueData, expenseData }) => {
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
-
-  const revenueCategories = revenueData.map(category => ({
-    name: category.category,
-    value: category.items.reduce((sum, item) => sum + item.actual, 0)
-  }));
-
-  const expenseCategories = expenseData.map(category => ({
-    name: category.category,
-    value: category.items.reduce((sum, item) => sum + item.actual, 0)
-  }));
-
-  const topRevenueCategories = revenueCategories.slice(0, 3);
-  const topExpenseCategories = expenseCategories.slice(0, 3);
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Graphs</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Revenue Proportions</h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={revenueCategories}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => {
-                  if (name === "Subscriptions" || name === "Sponsors, Grants & Memberships") {
-                    return `${name}: ${(percent * 100).toFixed(0)}%`;
-                  }
-                  return null;
-                }}
-              >
-                {revenueCategories.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Expense Proportions</h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={expenseCategories}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => {
-                  if (name === "Functions, Bar & Food" || name === "Equipment, & Uniforms & Training") {
-                    return `${name}: ${(percent * 100).toFixed(0)}%`;
-                  }
-                  return null;
-                }}
-              >
-                {expenseCategories.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-2">Expenses vs Revenue Comparison</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={revenueData.concat(expenseData)}>
-            <XAxis dataKey="category" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="budget" fill="#8884d8" name="Budget 2024/25" />
-            <Bar dataKey="actual" fill="#82ca9d" name="Actual 2023/24" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-};
-
-const SponsorsTab = () => {
-  const sponsors = [
-    { name: "Bowery Capital", amount: 5000 },
-    { name: "Acrylic", amount: 3000 },
-    { name: "Mulgrave Country Club", amount: 2000 },
-    { name: "Alby's Lawnmowing Service", amount: 1000 },
-    { name: "Bulk Transport (Tye Marchetti", amount: 1000 },
-    { name: "Weatherware Protection (Dirk David)", amount: 1000 },
-    { name: "Matt Morley", amount: 1000 },
-    { name: "Bendigo Bank", amount: 500 },
-    { name: "Simon Grady", amount: 500 },
-  ];
-
-  const grantees = [
-    { name: "Council", amount: 2500 },
-    { name: "MOCA", amount: 4000 },
-    { name: "Other", amount: 0 },
-  ];
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Sponsors</h2>
-      <table className="w-full mb-8">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="text-left p-2">Sponsor Entity</th>
-            <th className="text-right p-2">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sponsors.map((sponsor, index) => (
-            <tr key={index} className="border-b">
-              <td className="text-left p-2">{sponsor.name}</td>
-              <td className="text-right p-2">{formatCurrency(sponsor.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td className="text-left p-2">Total</td>
-            <td className="text-right p-2">{formatCurrency(sponsors.reduce((sum, sponsor) => sum + sponsor.amount, 0))}</td>
-          </tr>
-        </tfoot>
-      </table>
-      <h2 className="text-2xl font-bold mb-4">Grantees</h2>
-      <table className="w-full">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="text-left p-2">Grantee</th>
-            <th className="text-right p-2">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {grantees.map((grantee, index) => (
-            <tr key={index} className="border-b">
-              <td className="text-left p-2">{grantee.name}</td>
-              <td className="text-right p-2">{formatCurrency(grantee.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td className="text-left p-2">Total</td>
-            <td className="text-right p-2">{formatCurrency(grantees.reduce((sum, grantee) => sum + grantee.amount, 0))}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-};
-
-const SubscriptionsTab = () => {
-  const [subscriptions, setSubscriptions] = useState([
-    { feeType: "Senior", price: 440, payees: 20 },
-    { feeType: "Senior Concession", price: 340, payees: 15 },
-    { feeType: "Junior (Playing Seniors)", price: 120, payees: 6 },
-    { feeType: "Junior", price: 240, payees: 70 },
-    { feeType: "Blast/Super 7s", price: 50, payees: 7 },
-    { feeType: "Vets", price: 280, payees: 11 },
-    { feeType: "Women's", price: 100, payees: 0 },
-    { feeType: "All Abilities", price: 100, payees: 6 },
-  ]);
-
-  const handlePriceChange = (index, newPrice) => {
-    const updatedSubscriptions = [...subscriptions];
-    updatedSubscriptions[index].price = newPrice;
-    setSubscriptions(updatedSubscriptions);
-  };
-
-  const handlePayeesChange = (index, newPayees) => {
-    const updatedSubscriptions = [...subscriptions];
-    updatedSubscriptions[index].payees = newPayees;
-    setSubscriptions(updatedSubscriptions);
-  };
-
-  const totalRevenue = subscriptions.reduce((sum, sub) => sum + sub.price * sub.payees, 0);
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Subscriptions</h2>
-      <table className="w-full mb-8">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="text-left p-2">Fee Type</th>
-            <th className="text-right p-2">Price</th>
-            <th className="text-right p-2"># of Payees</th>
-            <th className="text-right p-2">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subscriptions.map((sub, index) => (
-            <tr key={index} className="border-b">
-            <td className="text-left p-2">{sub.feeType}</td>
-            <td className="text-right p-2">
-              <input
-                type="number"
-                value={sub.price}
-                onChange={(e) => handlePriceChange(index, parseFloat(e.target.value))}
-                className="w-full text-right"
-              />
-            </td>
-            <td className="text-right p-2">
-              <input
-                type="number"
-                value={sub.payees}
-                onChange={(e) => handlePayeesChange(index, parseInt(e.target.value))}
-                className="w-full text-right"
-              />
-            </td>
-            <td className="text-right p-2">{formatCurrency(sub.price * sub.payees)}</td>
-          </tr>
-        ))}
-        </tbody>
-        <tfoot>
-          <tr className="font-bold">
-            <td className="text-left p-2">Grand Total:</td>
-            <td></td>
-            <td className="text-right p-2">{subscriptions.reduce((sum, sub) => sum + sub.payees, 0)}</td>
-            <td className="text-right p-2">{formatCurrency(totalRevenue)}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-};
-
-const BudgetDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-
-  const totalRevenueBudget = detailedRevenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalExpenseBudget = detailedExpenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.budget, 0), 0);
-  const totalRevenueActual = detailedRevenueData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const totalExpenseActual = detailedExpenseData.reduce((sum, category) => 
-    sum + category.items.reduce((catSum, item) => catSum + item.actual, 0), 0);
-  const profitLossBudget = totalRevenueBudget - totalExpenseBudget;
-  const profitLossActual = totalRevenueActual - totalExpenseActual;
-
-  const openingBalance = 52067;
-  const netMovement = profitLossBudget;
-
-  return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold text-center mb-6 text-blue-800">
-        Mazenod Cricket Club Budget Dashboard
-      </h1>
-      <div className="mb-6">
-        <div className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'overview'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Overview
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'pl-summary'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
-            onClick={() => setActiveTab('pl-summary')}
-          >
-            P&L Summary
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'detailed-breakdown'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
-            onClick={() => setActiveTab('detailed-breakdown')}
-          >
-            Detailed Breakdown
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'graphs'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
-            onClick={() => setActiveTab('graphs')}
-          >
-            Graphs
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'sponsors'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
-            onClick={() => setActiveTab('sponsors')}
-          >
-            Sponsors
-          </button>
-          <button
-            className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ${
-              activeTab === 'subscriptions'
-                ? 'bg-white shadow text-blue-700'
-                : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-            }`}
-            onClick={() => setActiveTab('subscriptions')}
-          >
-            Subscriptions
-          </button>
-        </div>
-      </div>
-      {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <CategoryCard title="Revenue" budget={totalRevenueBudget} actual={totalRevenueActual} isRevenue={true} />
-          <CategoryCard title="Expenses" budget={totalExpenseBudget} actual={totalExpenseActual} isRevenue={false} />
-          <CategoryCard title="Profit/Loss" budget={profitLossBudget} actual={profitLossActual} isRevenue={true} />
-          <CashBalanceSummaryCard openingBalance={openingBalance} netMovement={netMovement} />
-        </div>
-      )}
-      {activeTab === 'pl-summary' && (
-        <ProfitLossSummary revenueData={detailedRevenueData} expenseData={detailedExpenseData} />
-      )}
-      {activeTab === 'detailed-breakdown' && (
-        <DetailedBreakdown revenueData={detailedRevenueData} expenseData={detailedExpenseData} />
-      )}
-      {activeTab === 'graphs' && (
-        <GraphsTab revenueData={detailedRevenueData} expenseData={detailedExpenseData} />
-      )}
-      {activeTab === 'sponsors' && (
-        <SponsorsTab />
-      )}
-      {activeTab === 'subscriptions' && (
-        <SubscriptionsTab />
-      )}
-    </div>
-  );
-};
-
-export default BudgetDashboard;
+export default FinancialDashboard;
